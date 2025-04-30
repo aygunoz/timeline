@@ -1,0 +1,878 @@
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monthly Work Hour Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Add html2pdf library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+    }
+
+    .calendar-day {
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .calendar-day:hover:not(.inactive) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .worked {
+      background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+      border: 2px solid #4ade80;
+    }
+
+    .today {
+      border: 2px dashed #3b82f6;
+    }
+
+    .summary-card {
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .month-selector {
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .edit-icon {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .calendar-day:hover .edit-icon {
+      opacity: 1;
+    }
+
+    .modal {
+      transition: all 0.3s ease;
+    }
+
+    .custom-hours {
+      font-size: 0.7rem;
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      background-color: rgba(255, 255, 255, 0.8);
+      border-radius: 8px;
+      padding: 0 4px;
+    }
+
+    /* PDF Export Styles */
+    #exportContent {
+      background-color: white;
+      font-family: 'Poppins', sans-serif;
+      width: 210mm; /* A4 width */
+      min-height: 297mm; /* A4 height */
+      padding: 20mm;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+
+    .pdf-header {
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
+
+    .pdf-logo {
+      width: 60px;
+      height: 60px;
+      background-color: #3b82f6;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 24px;
+    }
+
+    .pdf-calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 20px;
+    }
+
+    .pdf-calendar-day {
+      height: 40px;
+      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .pdf-worked {
+      background-color: #d1fae5;
+      border: 1px solid #4ade80;
+    }
+
+    .pdf-today {
+      border: 2px dashed #3b82f6;
+    }
+
+    .pdf-custom-hours {
+      font-size: 8px;
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      background-color: rgba(255, 255, 255, 0.8);
+      border-radius: 4px;
+      padding: 0 2px;
+    }
+
+    .pdf-summary-box {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .pdf-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    .pdf-table th, .pdf-table td {
+      border: 1px solid #e5e7eb;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    .pdf-table th {
+      background-color: #f3f4f6;
+    }
+
+    .pdf-footer {
+      margin-top: 30px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 15px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+    }
+  </style>
+  <style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.16 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.fixed{position:fixed}.relative{position:relative}.inset-0{inset:0px}.z-50{z-index:50}.col-span-1{grid-column:span 1 / span 1}.mx-2{margin-left:0.5rem;margin-right:0.5rem}.mx-auto{margin-left:auto;margin-right:auto}.mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mb-8{margin-bottom:2rem}.ml-1{margin-left:0.25rem}.mr-1{margin-right:0.25rem}.block{display:block}.flex{display:flex}.grid{display:grid}.hidden{display:none}.h-4{height:1rem}.h-5{height:1.25rem}.h-16{height:4rem}.max-h-48{max-height:12rem}.w-16{width:4rem}.w-4{width:1rem}.w-5{width:1.25rem}.w-80{width:20rem}.w-full{width:100%}.max-w-5xl{max-width:64rem}.cursor-pointer{cursor:pointer}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.grid-cols-7{grid-template-columns:repeat(7, minmax(0, 1fr))}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-2{gap:0.5rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.space-x-3 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(0.75rem * var(--tw-space-x-reverse));margin-left:calc(0.75rem * calc(1 - var(--tw-space-x-reverse)))}.space-x-4 > :not([hidden]) ~ :not([hidden]){--tw-space-x-reverse:0;margin-right:calc(1rem * var(--tw-space-x-reverse));margin-left:calc(1rem * calc(1 - var(--tw-space-x-reverse)))}.space-y-2 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.5rem * var(--tw-space-y-reverse))}.space-y-3 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))}.overflow-y-auto{overflow-y:auto}.rounded{border-radius:0.25rem}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.border{border-width:1px}.border-gray-300{--tw-border-opacity:1;border-color:rgb(209 213 219 / var(--tw-border-opacity, 1))}.border-gray-200{--tw-border-opacity:1;border-color:rgb(229 231 235 / var(--tw-border-opacity, 1))}.bg-black{--tw-bg-opacity:1;background-color:rgb(0 0 0 / var(--tw-bg-opacity, 1))}.bg-blue-50{--tw-bg-opacity:1;background-color:rgb(239 246 255 / var(--tw-bg-opacity, 1))}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.bg-gray-200{--tw-bg-opacity:1;background-color:rgb(229 231 235 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-gray-100{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity, 1))}.bg-opacity-50{--tw-bg-opacity:0.5}.p-2{padding:0.5rem}.p-4{padding:1rem}.p-6{padding:1.5rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.text-center{text-align:center}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-semibold{font-weight:600}.italic{font-style:italic}.text-blue-600{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128 / var(--tw-text-opacity, 1))}.text-gray-600{--tw-text-opacity:1;color:rgb(75 85 99 / var(--tw-text-opacity, 1))}.text-gray-700{--tw-text-opacity:1;color:rgb(55 65 81 / var(--tw-text-opacity, 1))}.text-gray-800{--tw-text-opacity:1;color:rgb(31 41 55 / var(--tw-text-opacity, 1))}.text-red-500{--tw-text-opacity:1;color:rgb(239 68 68 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175 / var(--tw-text-opacity, 1))}.opacity-50{opacity:0.5}.shadow-xl{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.hover\:bg-blue-100:hover{--tw-bg-opacity:1;background-color:rgb(219 234 254 / var(--tw-bg-opacity, 1))}.hover\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216 / var(--tw-bg-opacity, 1))}.hover\:bg-gray-300:hover{--tw-bg-opacity:1;background-color:rgb(209 213 219 / var(--tw-bg-opacity, 1))}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}.focus\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000)}.focus\:ring-blue-500:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(59 130 246 / var(--tw-ring-opacity, 1))}@media (min-width: 768px){.md\:col-span-2{grid-column:span 2 / span 2}.md\:mb-0{margin-bottom:0px}.md\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.md\:flex-row{flex-direction:row}.md\:p-8{padding:2rem}}</style></head>
+<body class="p-4 md:p-8">
+<div class="max-w-5xl mx-auto">
+  <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-800 mb-4 md:mb-0">Monthly Work Tracker</h1>
+
+      <div class="flex items-center space-x-4">
+        <div class="month-selector p-2">
+          <div class="flex items-center">
+            <button id="prevMonth" class="p-2 text-blue-600 hover:bg-blue-100 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+            </button>
+            <div class="mx-2">
+              <span id="currentMonth" class="text-lg font-medium text-gray-700">April</span>
+              <span id="currentYear" class="ml-1 text-lg font-medium text-gray-700">2025</span>
+            </div>
+            <button id="nextMonth" class="p-2 text-blue-600 hover:bg-blue-100 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="relative">
+          <input type="text" id="userName" placeholder="Your Name" class="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-8">
+      <div class="grid grid-cols-7 gap-2 mb-2">
+        <div class="text-center font-medium text-gray-600">Mon</div>
+        <div class="text-center font-medium text-gray-600">Tue</div>
+        <div class="text-center font-medium text-gray-600">Wed</div>
+        <div class="text-center font-medium text-gray-600">Thu</div>
+        <div class="text-center font-medium text-gray-600">Fri</div>
+        <div class="text-center font-medium text-gray-600 text-red-500">Sat</div>
+        <div class="text-center font-medium text-gray-600 text-red-500">Sun</div>
+      </div>
+
+      <div id="calendar" class="grid grid-cols-7 gap-2"><div class="calendar-day h-16 rounded-lg bg-gray-100 opacity-50 flex items-center justify-center text-gray-400 inactive"></div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-1">
+        <span class="text-lg text-gray-700">1</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-2">
+        <span class="text-lg text-gray-700">2</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-3">
+        <span class="text-lg text-gray-700">3</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-4">
+        <span class="text-lg text-gray-700">4</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-5">
+        <span class="text-lg text-red-500">5</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-6">
+        <span class="text-lg text-red-500">6</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-7">
+        <span class="text-lg text-gray-700">7</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-8">
+        <span class="text-lg text-gray-700">8</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-9">
+        <span class="text-lg text-gray-700">9</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-10">
+        <span class="text-lg text-gray-700">10</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-11">
+        <span class="text-lg text-gray-700">11</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-12">
+        <span class="text-lg text-red-500">12</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-13">
+        <span class="text-lg text-red-500">13</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-14">
+        <span class="text-lg text-gray-700">14</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-15">
+        <span class="text-lg text-gray-700">15</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-16">
+        <span class="text-lg text-gray-700">16</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-17">
+        <span class="text-lg text-gray-700">17</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-18">
+        <span class="text-lg text-gray-700">18</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-19">
+        <span class="text-lg text-red-500">19</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-20">
+        <span class="text-lg text-red-500">20</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-21">
+        <span class="text-lg text-gray-700">21</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-22">
+        <span class="text-lg text-gray-700">22</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-23">
+        <span class="text-lg text-gray-700">23</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-24">
+        <span class="text-lg text-gray-700">24</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-25">
+        <span class="text-lg text-gray-700">25</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-26">
+        <span class="text-lg text-red-500">26</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-27">
+        <span class="text-lg text-red-500">27</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-28">
+        <span class="text-lg text-gray-700">28</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer" data-date="2025-4-29">
+        <span class="text-lg text-gray-700">29</span>
+
+
+      </div><div class="calendar-day h-16 rounded-lg bg-white border border-gray-200 flex flex-col items-center justify-center cursor-pointer today" data-date="2025-4-30">
+        <span class="text-lg text-gray-700">30</span>
+
+
+      </div></div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="summary-card p-6 col-span-1">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-semibold text-gray-800">Work Summary</h3>
+          <button id="exportBtn" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            Export PDF
+          </button>
+        </div>
+        <div class="space-y-3">
+          <div class="flex justify-between">
+            <span class="text-gray-600">Days Worked:</span>
+            <span id="totalDays" class="font-medium">0 days</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">Total Hours:</span>
+            <span id="totalHours" class="font-medium">0 hours</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">Default Hours/Day:</span>
+            <div class="flex items-center">
+              <input type="number" id="hoursPerDay" value="8" min="1" max="24" class="w-16 border border-gray-300 rounded px-2 py-1 text-center">
+              <span class="ml-1">hours</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-card p-6 col-span-1 md:col-span-2">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">Work Details</h3>
+        <div id="workDetails" class="space-y-2 max-h-48 overflow-y-auto"><p class="text-gray-500 text-center italic">No work records yet.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for editing hours -->
+<div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden modal">
+  <div class="bg-white rounded-lg p-6 w-80 shadow-xl">
+    <h3 class="text-xl font-semibold text-gray-800 mb-4">Edit Hours</h3>
+    <div class="mb-4">
+      <p id="editDate" class="text-gray-600 mb-2">January 1, 2025</p>
+      <label class="block text-gray-700 mb-2">Hours worked:</label>
+      <input type="number" id="editHours" min="0" max="24" step="0.5" value="8" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+    <div class="flex justify-end space-x-3">
+      <button id="cancelEdit" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">Cancel</button>
+      <button id="saveEdit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden content for PDF export -->
+<div id="exportContent" class="hidden">
+  <div class="pdf-header flex justify-between items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Work Hours Report</h1>
+      <p id="exportPeriod" class="text-gray-600">January 2025</p>
+    </div>
+    <div class="pdf-logo">WH</div>
+  </div>
+
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <p class="text-gray-700 font-medium">Employee Information</p>
+      <p id="exportName" class="text-gray-800 font-bold text-lg">John Doe</p>
+    </div>
+    <div>
+      <p class="text-gray-700 text-sm">Report Generated</p>
+      <p id="exportDate" class="text-gray-800">01/01/2025</p>
+    </div>
+  </div>
+
+  <div class="pdf-summary-box bg-blue-50 mb-8">
+    <h2 class="text-xl font-semibold text-gray-800 mb-4">Summary</h2>
+    <div class="grid grid-cols-3 gap-4">
+      <div class="text-center">
+        <p class="text-sm text-gray-600">Days Worked</p>
+        <p id="exportTotalDays" class="text-xl font-bold text-gray-800">0 days</p>
+      </div>
+      <div class="text-center">
+        <p class="text-sm text-gray-600">Total Hours</p>
+        <p id="exportTotalHours" class="text-xl font-bold text-gray-800">0 hours</p>
+      </div>
+      <div class="text-center">
+        <p class="text-sm text-gray-600">Default Hours/Day</p>
+        <p id="exportDefaultHours" class="text-xl font-bold text-gray-800">8 hours</p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="text-xl font-semibold text-gray-800 mb-4">Monthly Calendar</h2>
+  <div class="mb-2 pdf-calendar">
+    <div class="text-center font-medium text-gray-600">Mon</div>
+    <div class="text-center font-medium text-gray-600">Tue</div>
+    <div class="text-center font-medium text-gray-600">Wed</div>
+    <div class="text-center font-medium text-gray-600">Thu</div>
+    <div class="text-center font-medium text-gray-600">Fri</div>
+    <div class="text-center font-medium text-gray-600 text-red-500">Sat</div>
+    <div class="text-center font-medium text-gray-600 text-red-500">Sun</div>
+  </div>
+  <div id="pdfCalendar" class="pdf-calendar mb-8"></div>
+
+  <h2 class="text-xl font-semibold text-gray-800 mb-4">Work Details</h2>
+  <table class="pdf-table">
+    <thead>
+    <tr>
+      <th>Date</th>
+      <th>Day</th>
+      <th>Hours</th>
+    </tr>
+    </thead>
+    <tbody id="exportWorkDetails">
+    <!-- Work details will be inserted here -->
+    </tbody>
+  </table>
+
+  <div class="pdf-footer">
+    <p>This is an automatically generated report from the Monthly Work Hour Tracker.</p>
+    <p id="exportTimestamp">Generated on: January 1, 2025 at 12:00 PM</p>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Variables
+    const today = new Date();
+    let currentDate = new Date(today.getFullYear(), today.getMonth(), 1); // Current month and year
+    const hoursPerDayInput = document.getElementById('hoursPerDay');
+    const userNameInput = document.getElementById('userName');
+    let workedDays = {}; // { "2025-1-1": { worked: true, hours: 8 } }
+    let editingDate = null;
+
+    // Month names
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
+
+    // Modal elements
+    const editModal = document.getElementById('editModal');
+    const editDateEl = document.getElementById('editDate');
+    const editHoursEl = document.getElementById('editHours');
+    const saveEditBtn = document.getElementById('saveEdit');
+    const cancelEditBtn = document.getElementById('cancelEdit');
+
+    // Create calendar
+    function renderCalendar() {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      document.getElementById('currentMonth').textContent = monthNames[month];
+      document.getElementById('currentYear').textContent = year;
+
+      const calendar = document.getElementById('calendar');
+      calendar.innerHTML = '';
+
+      // First day of month
+      const firstDay = new Date(year, month, 1);
+      // Last day of month
+      const lastDay = new Date(year, month + 1, 0);
+
+      // Find which day of the week the first day is (0: Sunday, 1: Monday, ..., 6: Saturday)
+      let firstDayOfWeek = firstDay.getDay();
+      // Adjust to make Monday 0 (Monday: 0, Tuesday: 1, ..., Sunday: 6)
+      firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+      // Add empty days from previous month
+      for (let i = 0; i < firstDayOfWeek; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'calendar-day h-16 rounded-lg bg-gray-100 opacity-50 flex items-center justify-center text-gray-400 inactive';
+        calendar.appendChild(emptyDay);
+      }
+
+      // Add days of the month
+      for (let day = 1; day <= lastDay.getDate(); day++) {
+        const dayElement = document.createElement('div');
+        const currentDateString = `${year}-${month+1}-${day}`;
+        const dayData = workedDays[currentDateString] || { worked: false, hours: parseInt(hoursPerDayInput.value) || 8 };
+
+        dayElement.className = `calendar-day h-16 rounded-lg ${dayData.worked ? 'worked' : 'bg-white'} border border-gray-200 flex flex-col items-center justify-center cursor-pointer`;
+
+        // Add special style if today
+        if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+          dayElement.classList.add('today');
+        }
+
+        // Make weekend text red
+        const dayOfWeek = new Date(year, month, day).getDay();
+        const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+
+        // Create day content
+        dayElement.innerHTML = `
+                        <span class="text-lg ${isWeekend ? 'text-red-500' : 'text-gray-700'}">${day}</span>
+                        ${dayData.worked ? '<span class="text-xs text-green-600">✓</span>' : ''}
+                        ${dayData.worked && dayData.hours !== (parseInt(hoursPerDayInput.value) || 8) ?
+                `<span class="custom-hours text-blue-600">${dayData.hours}h</span>` : ''}
+                    `;
+
+        // Add edit icon if worked
+        if (dayData.worked) {
+          const editIcon = document.createElement('div');
+          editIcon.className = 'edit-icon p-1 bg-white bg-opacity-80 rounded-full cursor-pointer';
+          editIcon.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        `;
+          editIcon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openEditModal(currentDateString);
+          });
+          dayElement.appendChild(editIcon);
+        }
+
+        dayElement.setAttribute('data-date', currentDateString);
+
+        dayElement.addEventListener('click', function() {
+          toggleWorkedDay(currentDateString);
+        });
+
+        calendar.appendChild(dayElement);
+      }
+
+      updateSummary();
+    }
+
+    // Toggle worked day
+    function toggleWorkedDay(dateString) {
+      if (workedDays[dateString] && workedDays[dateString].worked) {
+        delete workedDays[dateString];
+      } else {
+        const defaultHours = parseInt(hoursPerDayInput.value) || 8;
+        workedDays[dateString] = { worked: true, hours: defaultHours };
+      }
+      renderCalendar();
+    }
+
+    // Open edit modal
+    function openEditModal(dateString) {
+      editingDate = dateString;
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(year, month-1, day);
+
+      // Format date for display
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const formattedDate = date.toLocaleDateString('en-US', options);
+
+      editDateEl.textContent = formattedDate;
+      editHoursEl.value = workedDays[dateString].hours;
+
+      editModal.classList.remove('hidden');
+    }
+
+    // Close edit modal
+    function closeEditModal() {
+      editModal.classList.add('hidden');
+      editingDate = null;
+    }
+
+    // Save edited hours
+    function saveEditedHours() {
+      if (!editingDate) return;
+
+      const hours = parseFloat(editHoursEl.value) || 0;
+      if (hours < 0) hours = 0;
+      if (hours > 24) hours = 24;
+
+      workedDays[editingDate].hours = hours;
+      closeEditModal();
+      renderCalendar();
+    }
+
+    // Update summary
+    function updateSummary() {
+      const workedDatesArray = Object.keys(workedDays);
+      const totalDays = workedDatesArray.length;
+      let totalHours = 0;
+
+      workedDatesArray.forEach(dateString => {
+        totalHours += workedDays[dateString].hours;
+      });
+
+      document.getElementById('totalDays').textContent = `${totalDays} day${totalDays !== 1 ? 's' : ''}`;
+      document.getElementById('totalHours').textContent = `${totalHours} hour${totalHours !== 1 ? 's' : ''}`;
+
+      // Update work details
+      const workDetails = document.getElementById('workDetails');
+      workDetails.innerHTML = '';
+
+      if (totalDays === 0) {
+        workDetails.innerHTML = '<p class="text-gray-500 text-center italic">No work records yet.</p>';
+        return;
+      }
+
+      const userName = userNameInput.value || 'Employee';
+
+      // Sort dates
+      workedDatesArray.sort((a, b) => {
+        const [yearA, monthA, dayA] = a.split('-').map(Number);
+        const [yearB, monthB, dayB] = b.split('-').map(Number);
+
+        const dateA = new Date(yearA, monthA-1, dayA);
+        const dateB = new Date(yearB, monthB-1, dayB);
+
+        return dateA - dateB;
+      });
+
+      workedDatesArray.forEach(dateString => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(year, month-1, day);
+
+        const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+        const formattedDate = `${monthNames[month-1]} ${day}, ${year}`;
+
+        const detailItem = document.createElement('div');
+        detailItem.className = 'flex justify-between items-center p-2 border-b border-gray-100';
+        detailItem.innerHTML = `
+                        <div>
+                            <span class="font-medium">${formattedDate}</span>
+                            <span class="text-sm text-gray-500 ml-2">(${dayOfWeek})</span>
+                        </div>
+                        <div>
+                            <span class="text-blue-600 font-medium">${userName}</span>
+                            <span class="text-gray-600"> - ${workedDays[dateString].hours} hour${workedDays[dateString].hours !== 1 ? 's' : ''}</span>
+                        </div>
+                    `;
+        workDetails.appendChild(detailItem);
+      });
+    }
+
+    // Render PDF calendar
+    function renderPDFCalendar() {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      const pdfCalendar = document.getElementById('pdfCalendar');
+      pdfCalendar.innerHTML = '';
+
+      // First day of month
+      const firstDay = new Date(year, month, 1);
+      // Last day of month
+      const lastDay = new Date(year, month + 1, 0);
+
+      // Find which day of the week the first day is (0: Sunday, 1: Monday, ..., 6: Saturday)
+      let firstDayOfWeek = firstDay.getDay();
+      // Adjust to make Monday 0 (Monday: 0, Tuesday: 1, ..., Sunday: 6)
+      firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+      // Add empty days from previous month
+      for (let i = 0; i < firstDayOfWeek; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'pdf-calendar-day bg-gray-100 opacity-50 flex items-center justify-center text-gray-400';
+        pdfCalendar.appendChild(emptyDay);
+      }
+
+      // Add days of the month
+      for (let day = 1; day <= lastDay.getDate(); day++) {
+        const dayElement = document.createElement('div');
+        const currentDateString = `${year}-${month+1}-${day}`;
+        const dayData = workedDays[currentDateString] || { worked: false, hours: parseInt(hoursPerDayInput.value) || 8 };
+
+        dayElement.className = `pdf-calendar-day ${dayData.worked ? 'pdf-worked' : 'bg-white'} flex flex-col items-center justify-center`;
+
+        // Add special style if today
+        if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+          dayElement.classList.add('pdf-today');
+        }
+
+        // Make weekend text red
+        const dayOfWeek = new Date(year, month, day).getDay();
+        const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+
+        // Create day content
+        dayElement.innerHTML = `
+                        <span class="${isWeekend ? 'text-red-500' : 'text-gray-700'}">${day}</span>
+                        ${dayData.worked ? '<span class="text-xs text-green-600">✓</span>' : ''}
+                        ${dayData.worked && dayData.hours !== (parseInt(hoursPerDayInput.value) || 8) ?
+                `<span class="pdf-custom-hours text-blue-600">${dayData.hours}h</span>` : ''}
+                    `;
+
+        pdfCalendar.appendChild(dayElement);
+      }
+    }
+
+    // Export to PDF
+    function exportToPDF() {
+      // Update export content
+      const userName = userNameInput.value || 'Employee';
+      const month = monthNames[currentDate.getMonth()];
+      const year = currentDate.getFullYear();
+      const defaultHours = parseInt(hoursPerDayInput.value) || 8;
+
+      // Get total days and hours
+      const workedDatesArray = Object.keys(workedDays);
+      const totalDays = workedDatesArray.length;
+      let totalHours = 0;
+
+      workedDatesArray.forEach(dateString => {
+        totalHours += workedDays[dateString].hours;
+      });
+
+      // Format current date and time for the report
+      const now = new Date();
+      const formattedDateTime = now.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }) + ' at ' + now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      // Update export elements
+      document.getElementById('exportName').textContent = userName;
+      document.getElementById('exportPeriod').textContent = `${month} ${year}`;
+      document.getElementById('exportDate').textContent = now.toLocaleDateString('en-US');
+      document.getElementById('exportTimestamp').textContent = `Generated on: ${formattedDateTime}`;
+      document.getElementById('exportTotalDays').textContent = `${totalDays} day${totalDays !== 1 ? 's' : ''}`;
+      document.getElementById('exportTotalHours').textContent = `${totalHours} hour${totalHours !== 1 ? 's' : ''}`;
+      document.getElementById('exportDefaultHours').textContent = `${defaultHours} hour${defaultHours !== 1 ? 's' : ''}`;
+
+      // Render PDF calendar
+      renderPDFCalendar();
+
+      // Sort dates
+      workedDatesArray.sort((a, b) => {
+        const [yearA, monthA, dayA] = a.split('-').map(Number);
+        const [yearB, monthB, dayB] = b.split('-').map(Number);
+
+        const dateA = new Date(yearA, monthA-1, dayA);
+        const dateB = new Date(yearB, monthB-1, dayB);
+
+        return dateA - dateB;
+      });
+
+      // Update work details table
+      const exportWorkDetails = document.getElementById('exportWorkDetails');
+      exportWorkDetails.innerHTML = '';
+
+      if (totalDays === 0) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = `
+                        <td colspan="3" class="py-4 px-4 text-center text-gray-500 italic">No work records for this period.</td>
+                    `;
+        exportWorkDetails.appendChild(emptyRow);
+      } else {
+        let totalHoursSum = 0;
+
+        workedDatesArray.forEach(dateString => {
+          const [year, month, day] = dateString.split('-').map(Number);
+          const date = new Date(year, month-1, day);
+
+          const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+          const formattedDate = `${monthNames[month-1]} ${day}, ${year}`;
+          const hours = workedDays[dateString].hours;
+
+          totalHoursSum += hours;
+
+          const row = document.createElement('tr');
+          row.className = 'border-b';
+          row.innerHTML = `
+                            <td>${formattedDate}</td>
+                            <td>${dayOfWeek}</td>
+                            <td>${hours} hour${hours !== 1 ? 's' : ''}</td>
+                        `;
+          exportWorkDetails.appendChild(row);
+        });
+
+        // Add total row
+        const totalRow = document.createElement('tr');
+        totalRow.className = 'bg-gray-50 font-medium';
+        totalRow.innerHTML = `
+                        <td colspan="2" class="text-right">Total Hours:</td>
+                        <td>${totalHoursSum} hour${totalHoursSum !== 1 ? 's' : ''}</td>
+                    `;
+        exportWorkDetails.appendChild(totalRow);
+      }
+
+      // Make export content visible temporarily
+      const exportContent = document.getElementById('exportContent');
+      exportContent.classList.remove('hidden');
+
+      // Generate PDF
+      const opt = {
+        margin: 10,
+        filename: `${userName.replace(/\s+/g, '_')}_Work_Hours_${month}_${year}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      // Generate PDF
+      html2pdf().set(opt).from(exportContent).save().then(() => {
+        // Hide export content after PDF generation
+        exportContent.classList.add('hidden');
+      });
+    }
+
+    // Previous month
+    document.getElementById('prevMonth').addEventListener('click', function() {
+      currentDate.setMonth(currentDate.getMonth() - 1);
+      renderCalendar();
+    });
+
+    // Next month
+    document.getElementById('nextMonth').addEventListener('click', function() {
+      currentDate.setMonth(currentDate.getMonth() + 1);
+      renderCalendar();
+    });
+
+    // Update summary when default hours change
+    hoursPerDayInput.addEventListener('change', function() {
+      renderCalendar();
+    });
+
+    // Update summary when name changes
+    userNameInput.addEventListener('input', updateSummary);
+
+    // Modal event listeners
+    saveEditBtn.addEventListener('click', saveEditedHours);
+    cancelEditBtn.addEventListener('click', closeEditModal);
+
+    // Export button
+    document.getElementById('exportBtn').addEventListener('click', exportToPDF);
+
+    // Close modal when clicking outside
+    editModal.addEventListener('click', function(e) {
+      if (e.target === editModal) {
+        closeEditModal();
+      }
+    });
+
+    // Initial render
+    renderCalendar();
+  });
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9386cf2f347cd5fe',t:'MTc0NjAxMzY5OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><iframe height="1" width="1" style="position: absolute; top: 0px; left: 0px; border: medium; visibility: hidden;"></iframe>
+</body></html>
