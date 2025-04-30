@@ -1,5 +1,6 @@
 <img width="1053" alt="image" src="https://github.com/user-attachments/assets/882e316a-45fa-4b8a-b9a7-aa46b552610e" />
 <img width="1043" alt="image" src="https://github.com/user-attachments/assets/4b2574fe-8207-4910-a8d3-606b4157d8b9" />
+<img width="1290" alt="image" src="https://github.com/user-attachments/assets/b79b5449-62e6-4e61-9218-8679486a442c" />
 
 Work Hour Tracker (2025)
 
